@@ -1,0 +1,173 @@
+create table order_d(
+order_details_id int,
+order_id int,
+pizza_id varchar(50),
+quantity int
+
+);
+select * from order_d;
+
+create table orders(
+order_id int,
+date date,
+time time
+);
+
+select * from orders;
+
+create table pizza_t(
+pizza_type_id varchar(50),
+name varchar(500),
+category varchar(500),
+ingredients varchar(500)
+
+
+)
+drop table pizza_t;
+
+create table pizza(
+pizza_id varchar(100),
+pizza_type_id varchar(100),
+size varchar(10),
+price numeric(10,2)
+
+)
+select * from order_d;
+select * from orders;
+select * from pizza_t;
+select * from pizza;
+
+--1
+select sum(o.quantity * p.price)
+from order_d o
+join pizza p
+on
+o.pizza_id=p.pizza_id;
+
+--2
+select p.name,sum(t.price) as pr
+from
+pizza_t p
+join
+pizza t
+on
+p.pizza_type_id=t.pizza_type_id
+group by name
+order by pr  desc;
+
+--3
+select count(pizza_id),t.size
+from
+pizza_t p
+join
+pizza t
+on
+p.pizza_type_id=t.pizza_type_id
+group by t.size;
+
+--4
+select p.name,sum(d.quantity) as s
+from pizza t
+join
+order_d d
+on
+t.pizza_id=d.pizza_id
+join
+pizza p
+t.pizza_type_id=p.pizza_type_id
+
+group by p.name
+order by s desc
+
+--5
+select t.category,sum(d.quantity) as q
+from pizza_t t
+join pizza p
+on
+t.pizza_type_id=p.pizza_type_id
+join order_d d
+on d.pizza_id=p.pizza_id
+group by t.category
+order by q desc
+
+ --6
+ select category,count(name)
+ from pizza_t 
+ group by category
+
+ select count(order_id),
+        extract(day from date) as per_day from orders
+		group by per_day
+		order by per_day desc
+
+--7
+select t.name,sum(p.price) as pr
+from
+pizza_t  t
+join
+pizza p
+on
+t.pizza_type_id=p.pizza_type_id
+group by t.name
+order by pr desc
+
+
+-1
+select t.name,sum(o.quantity * p.price ) as o_q
+from pizza_t t
+join
+pizza p
+on t.pizza_type_id=p.pizza_type_id
+join order_d o
+on p.pizza_id=o.pizza_id
+group by t.name
+order by o_q desc
+
+--2
+select t.category,round(sum(o.quantity * p.price ) /
+(select round(sum(o.quantity * p.price),2) as total_sales
+from order_d o
+join pizza p
+on p.pizza_id=o.pizza_id)*100,2) as o_q
+from pizza_t t
+join
+pizza p
+on t.pizza_type_id=p.pizza_type_id
+join order_d o
+on p.pizza_id=o.pizza_id
+group by t.category
+order by o_q desc
+
+--4
+select date,
+sum(rev) over(order by date) as cum_r
+from
+(select o.date,sum(d.quantity*p.price) as rev
+from orders o
+join 
+order_d d
+on o.order_id=d.order_id
+join pizza p
+on d.pizza_id=p.pizza_id
+group by o.date) as sales
+
+--5
+select category,name,rev
+from
+(select category,name,rev,
+dense_rank()
+over(partition by category
+order by rev desc) as rn
+from 
+(select t.category,t.name,sum(p.price * d.quantity) as rev
+from pizza_t t
+join
+pizza p
+on t.pizza_type_id=p.pizza_type_id
+join
+order_d d
+on d.pizza_id=p.pizza_id
+group by t.category,t.name) as name_rev) b
+where rn<=3
+
+
